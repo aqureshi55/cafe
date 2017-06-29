@@ -1,0 +1,12 @@
+#
+# The main cafe .rootrc file.
+#
+
+# 
+# This tells cafe how to open and read a list of files, depending on the
+# URL.
+#
++Plugin.Expander:  ^listfile:  cafe::FilelistExpander cafe "FilelistExpander(const char *)"
++Plugin.Expander:  ^filelist:  cafe::FilelistExpander cafe "FilelistExpander(const char *)"
++Plugin.Expander:  *           cafe::FileExpander cafe     "FileExpander(const char *)"
+

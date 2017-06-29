@@ -1,0 +1,13 @@
+This is a partial port of the D0 cafe package under RootCore and
+xAODRoootAccess.
+
+
+cafe is an analysis framework developped in the D0 collaboration: 
+
+http://cdcvs0.fnal.gov/cgi-bin/public-cvs/cvsweb-public.cgi/cafe/?cvsroot=d0cvs
+
+with Reiner Hauser as the initial author and contributions from Herb Greenlee, 
+Slava Shary and Gordon Watts for the core functionalities re-used here.
+
+
+

@@ -1,0 +1,321 @@
+<!doctype linuxdoc system>
+
+<article>
+
+<title>An introduction to <tt/cafe/
+<author>Laurent Duflot
+<date>02 Jan 2015
+
+<toc>
+
+<sect>Introduction
+<p>
+The <tt/cafe/ framework is targeted at analysis of <tt/xAOD/ based on <tt/RootCore/.
+ The aim is to provide a simple tool to process <tt/xAOD/ files with
+configuration based on text files. The framework organises the event processing
+through series of processing modules (implemented as classes deriving from the
+Processor class) that can be grouped together via Controllers. <tt/cafe/ provides
+predefined processors for looping through files and organising (conditional)
+processing.
+
+This version is based on the D0 analysis framework that was converted to 
+<tt/xAOD/. 
+</sect>
+
+
+<sect> Getting started
+<p>
+All the examples assume that one has setup the minimal user environment, i.e.
+setupATLAS on lxplus or the equivalent on an institute machine / laptop and
+that commands are executed on a newly created directory.
+
+<verb>
+rcSetup  Base,2.0.19
+svn co \
+  svn+ssh://svn.cern.ch/reps/atlasoff/PhysicsAnalysis/SUSYPhys/Factory/cafe/tags/cafe-00-00-04 \
+  cafe
+rc find_packages
+rc compile
+</verb> 
+
+This creates the executable "cafe" that uses the predefined processor for 
+looping on files. Most users will only need to use this executable and configure
+the analysis via the command line or text files. The basic functionalities are
+illustrated by this command line:
+
+<verb>
+cafe Run: Group \
+  Input: root://eosatlas.cern.ch//eos/atlas/user/j/jpoveda/r5625_test/AOD.01507244._011801.pool.root.1 \
+  Events: 10 Progress: 1
+</verb>
+
+The <tt/Input:/ keyword allows to specify the input file or a file list through
+the syntax <tt/listfile:allmyfiles.txt/, <tt/Events:/ controls the number of 
+events being processed and <tt/Progress:/ the frequency at which a simple
+printout is made. In this example, an empty group of processor is specified via
+the <tt/Run:/ keyword but in a real life analysis this is where a user can 
+list his/her processors.
+
+To write out an <tt/xAOD/, the user can use a combination of the 
+<tt/xAODOutput:/ (for the file name) and <tt/Containers:/ (for the list of 
+containers written out) keywords.
+
+<verb>
+/bin/rm -f myxAOD.root; \
+cafe Run: Group \
+  Input: root://eosatlas.cern.ch//eos/atlas/user/j/jpoveda/r5625_test/AOD.01507244._011801.pool.root.1 \
+  Events: 10 Progress: 1 \
+  xAODOutput: myxAOD.root Containers: EventInfo WriteAllEvents: TRUE
+</verb>
+
+In this case, we've specified that all events should be written out, but in 
+general the user can specify via a Processor function call that the current
+event being analysed should be written out.
+
+
+<sect1>Processor
+<p>
+To implement an analysis in <tt/cafe/, the user implements one or more processors 
+that inherit from <tt/cafe::Processor/ and overload the provided methods:
+
+<verb>
+        /// Called at beginning of processing.
+        virtual void begin();
+
+        /// Called at end of processing.
+        virtual void finish();
+
+        /// Called for every new input file that was opened.
+        virtual void inputFileOpened(TFile *file);
+
+        /// Called for every input file that is about to be closed.
+        virtual void inputFileClosing(TFile *file);
+
+        /// Called for every event.
+        virtual bool processEvent(xAOD::TEvent& event);
+</verb>
+As expected, these methods are called respectively at initialisation, 
+termination, when a new file is opened or closed and for every event. In 
+addition, the user can use the following helper methods
+
+<verb>
+        /// The name of the Processor as passed to the constructor.
+        std::string  name() const;
+
+        /// The full name with all parents included. This is only
+        /// valid once the whole Processor chain has been constructed.
+        std::string  fullName() const;
+
+        /// Return a stream to print normal output messages to (cout by default).
+        std::ostream& out();
+
+        /// Return a stream to print informational messages to (cout by default).
+      	std::ostream& info();
+
+        /// Return a stream to print warning messages to (cout by default).
+        std::ostream& warn();
+
+        /// Return a stream to print error messages (cerr by default).
+        std::ostream& err();
+
+        /// Flag the xAOD TEvent as to be written, the flags is propagated 
+        /// to parents where the root parent should actually write the event
+        void write_xAOD_event();
+</verb>
+The processor is expected to interact with <tt/TEvent/ to get or publish 
+information from/to other processors. If <tt/processEvent()/ returns false
+the processing of the event stops for the group of processors where the 
+current processor is (but overall processors can be arranged in a tree-like
+structure of groups).
+
+Let us consider a simple "print event" processor as an example. First one would
+create a new <tt/RootCore/ package, then create a skeleton processor with
+the helper script from <tt/cafe/:
+
+<verb>
+rc make_skeleton cafe_tutorial
+cafe/scripts/cafe_make_processor cafe_tutorial PrintEvent
+</verb>
+then add <tt/cafe/ and <tt/xAODEventInfo/ as a dependecy (<tt/PACKAGE_DEP/). In <tt/PrintEvent.cxx/ add
+
+
+<verb>
+#include "xAODEventInfo/EventInfo.h"
+</verb>
+
+and in <tt/PrintEvent::processEvent/ 
+
+<verb>
+  const xAOD::EventInfo* eventInfo = 0;
+  if ( !event.retrieve( eventInfo, "EventInfo").isSuccess() ) return true; 
+
+  bool isData = true;
+  if(eventInfo->eventType( xAOD::EventInfo::IS_SIMULATION ) ){
+    isData = false; 
+  }
+  uint32_t RunNumber = eventInfo->runNumber();
+  unsigned long long EventNumber = eventInfo->eventNumber();
+  uint32_t mc_channel_number = 0;
+  if ( ! isData ) mc_channel_number = eventInfo->mcChannelNumber();
+  out() << "---------------------------------------------------------------" << std::endl;
+  out() << "---------------------------------------------------------------" << std::endl;
+  out() << "Run " <<  RunNumber << " Event " << EventNumber << " isData " <<
+    isData << " channel " << mc_channel_number << std::endl;
+</verb>
+
+after recompilation, one can test the new processor
+
+<verb>
+rc find_packages
+rc compile
+cafe Run: PrintEvent   \
+  Input: root://eosatlas.cern.ch//eos/atlas/user/j/jpoveda/r5625_test/AOD.01507244._011801.pool.root.1 \
+  Events: 10 Progress: 1
+</verb>
+
+</sect1>
+
+<sect1>Config files
+<p>
+Configuring the processing from the command line become quickly difficult to
+manage, so <tt/cafe/ can be configured using text files that follow the syntax
+of root <tt/TEnv/. The following config file <tt/print.config/ is the equivalent
+of the previous command line configuration:
+
+<verb>
+cafe.Run: PrintEvent
+cafe.Input: root://eosatlas.cern.ch//eos/atlas/user/j/jpoveda/r5625_test/AOD.01507244._011801.pool.root.1
+cafe.Events: 10 
+cafe.Progress: 1
+</verb>
+and the command line becomes 
+
+<verb>
+cafe print.config
+</verb>
+With the "cafe" executable, the top level Group/Controller is also 
+called "cafe", hence
+the <tt/cafe.KEYWORD/ syntax. For large applications, it might be better to
+split the config file into pieces that can be put together with <tt/cafe.Include:/ In a processor, the values of the associated properties defined in the 
+config file can be accessed via the <tt/cafe::Config/ class and its "getXXX"
+accessor methods. 
+
+Let us add a property to our minimalistic processor: Progress so that the 
+printout happens every "Progress" event like for the cafe executable, so in 
+the .h and .cxx respectively
+
+<verb>
+private:
+  unsigned int m_counter;
+  unsigned int m_progress;
+</verb>
+
+<verb>
+................................
+#include "cafe/Config.h"
+
+PrintEvent::PrintEvent(const char *name)
+    : cafe::Processor(name),
+      m_counter(0),
+      m_progress(1)
+{
+  cafe::Config config(name);
+  m_progress = config.get("Progress",1);
+}
+
+bool PrintEvent::processEvent(xAOD::TEvent& event)
+{
+  m_counter++;
+  if ( m_counter % m_progress != 0 ) return true;
+
+................................
+</verb>
+
+and modifying the config file
+
+<verb>
+cafe.Run: PrintEvent(print)
+cafe.Input: root://eosatlas.cern.ch//eos/atlas/user/j/jpoveda/r5625_test/AOD.01507244._011801.pool.root.1
+cafe.Events: 10 
+cafe.Progress: 1
+
+print.Progress: 2
+</verb>
+where on the <tt/Run:/ line the processor have been named with the syntax
+<tt/CLASS(instance name)/ and the name used to specify the value of the Progress
+property.
+
+
+</sect1>
+
+
+<sect1>Controller
+<p> 
+Controller is a special type of processor that for each method <tt/begin(), 
+finish(), .... processEvent().../ calls in sequence the corresponding method
+in their child processors specified with the <tt/Run:/ property. Among those,
+there could be other Controllers, so processors can be arranged in a tree of
+processing groups. Combine with the <tt/+Include/ functionality of the config
+file, this could allow for example to develop independently analyses that could
+be run separately under their own controller but could also be combined in a 
+single run.
+
+
+The "cafe" executable instanciate a top level RunController which is a 
+Controller named "cafe" that allows to loop over input files, hence the 
+<tt/cafe.Run:/ syntax of the config file above.
+
+</sect1>
+
+</sect>
+
+<sect> Advanced usage
+
+<sect1>IfPr
+<p>
+This processor has three properties, <tt/Select/, <tt/Then/ and <tt/Else/,
+that point to (groups of) processors. If the processor(s) from the <tt/Select/
+list return(s) <tt/true/ the <tt/Then/ list is executed, otherwise the <tt/Else/
+list is executed. One example application is to differenciate the list of processors 
+run on real data or simulation.
+</sect1>
+
+<sect1>OR
+<p> 
+This processor returns true if any of the processors in its <tt/Run/ list 
+returns true. This could for example hold a list of analysis and be followed
+by an ntuple maker or a xAOD writer processor. 
+</sect1>
+
+<sect1>RunController
+<p>
+This is a class derived from Controller that implemented the file and event
+handling used by the "cafe" executable.
+
+The properties linked with the input files and events are:
+
+<enum>
+<item><tt/Input:/ with a file URL or a text file with a list of URLs via the syntax  <tt/listfile:allmyfiles.txt/
+<item><tt/Files:/ number of files to read
+<item><tt/SkipFiles:/ number of files to skip
+<item><tt/Events:/ number of events to read
+<item><tt/Skip:/ number of events to skip
+<item><tt/Progress:/ print entry number every "Progress" event
+<item><tt/StoreDumo:/ like <tt/Progress:/ but lists the containers in TEvent
+</enum>
+
+The properties linked with the output are:
+<enum>
+<item><tt/Output:/ The name of a root output file (for histograms, trees etc)
+<item><tt/xAODOOutput:/ The name of the xAOD output file (must no exist)
+<item><tt/Containers:/ List of containers to write to the output xAOD
+<item><tt/WriteAllEvents:/ Write all event to the output xAOD 
+</enum>
+
+
+
+</sect1>
+
+</sect>
+
+</article>

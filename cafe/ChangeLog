@@ -1,0 +1,63 @@
+11-May-2016: Laurent Duflot
+	* tagged as cafe-00-00-10
+
+10-May-2016: Laurent Duflot
+	* RunController: update valide access modes
+
+09-May-2016: Laurent Duflot
+	* RunController: add metadata and trigger tools
+
+16-Feb-2016: Laurent Duflot
+	* RunController: add retries for file opening
+	* tagged as cafe-00-00-09
+
+13-Nov-2015 Laurent Duflot
+	* apply patch from Geert-Jan for correct indentation
+
+06-Aug-2015 Laurent Duflot
+	* RunController: add TTreeCache size setting option
+
+31-Jul-2015 Laurent Duflot
+	* RunController: add VMEM and RSS to progress report
+	* tagged as cafe-00-00-07
+
+20-Jul-2015 Laurent Duflot
+	* make sure to throw exceptions instead of issuing cerr messages
+	* tagged as cafe-00-00-06
+
+02-Jan-2015 Laurent Duflot
+	* RunController: add TEvent access mode
+	* tagged as cafe-00-00-04
+
+23-Dec-2014 Laurent Duflot
+	* add mini tutorial
+
+19-Dec-2014 Laurent Duflot
+	* RunController: add WriteAllEvents option
+
+08-Dec-2014 Laurent Duflot
+	* tag as cafe-00-00-02
+
+------ code moved to atlasoff svn --------------------------------
+
+01-Oct-2014 Laurent Duflot
+	* Processor, Controller: cleanup code so that Controller does not
+	need to be declared friend to Processor
+
+20-Sep-2014 Laurent Duflot
+	* Processor: remove printout
+
+09-Sep-2014 Laurent Duflot
+	* Processor, RunController: introduce a function to flag the xAOD event
+	for writing. Actual writing happens only in RunController.
+	* RunController: add list of containers to be copied to output xAOD
+
+08-Aug-2014 Laurent Duflot
+	* RunController: add finishWritingTo
+
+05-Aug-2014 Laurent Duflot
+	* add xAODOutput option for RunController
+
+xx-Jul-2014 Laurent Duflot
+	* Convert core functionalities of D0 cafe to RootCore / xAODRootAccess
+
